@@ -1,6 +1,6 @@
 import base64
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from src.domain import File, FileType
@@ -17,17 +17,17 @@ class LLMFileClassifier:
     )
 
     def __init__(self):
-        self.client = OpenAI()
+        self.client = AsyncOpenAI()
 
     def _encode_image(self, file: File) -> str:
         image_data = file.content.read()
         return base64.b64encode(image_data).decode("utf-8")
 
-    def clasify_file(self, file: File) -> FileType:
+    async def clasify_file(self, file: File) -> FileType:
         base64_img = self._encode_image(file)
         url = f"data:image/{file.extension(with_dot=False)};base64,{base64_img}"
 
-        response = self.client.beta.chat.completions.parse(
+        response = await self.client.beta.chat.completions.parse(
             model="gpt-4o",
             response_format=ClassifiedFileType,
             messages=[

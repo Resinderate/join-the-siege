@@ -14,12 +14,12 @@ class FileClassifier:
     - Use a multimodal input LLM model to examine the file, and classify it.
     """
 
-    def classify_file(self, file: File) -> FileType:
+    async def classify_file(self, file: File) -> FileType:
         if not file.is_image():
             file = FileConverter().convert_file(file)
 
         try:
-            file_type = LLMFileClassifier().clasify_file(file)
+            file_type = await LLMFileClassifier().clasify_file(file)
         except OpenAIError:
             # Use a tiered archetechture, so that we can fall back to cheaper
             # more reliable (but less capable) classifiers in the face of issues.

@@ -27,6 +27,6 @@ async def classify_file(file: UploadFile) -> ClassifiedFile:
     if f.extension() not in ALLOWED_EXTENSIONS:
         raise HTTPException(400, f"Filetype not allowed: {f.extension()}")
 
-    file_type = FileClassifier().classify_file(f)
+    file_type = await FileClassifier().classify_file(f)
 
     return ClassifiedFile(file_type=file_type)

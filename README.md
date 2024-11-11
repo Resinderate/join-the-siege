@@ -8,69 +8,55 @@ This repository provides a basic endpoint for classifying files by their filenam
 
 **Your task**: improve this classifier by adding features and optimisations to handle (1) poorly named files, (2) scaling to new industries, and (3) processing larger volumes of documents.
 
-This is a real-world challenge that allows you to demonstrate your approach to building innovative and scalable AI solutions. We’re excited to see what you come up with! Feel free to take it in any direction you like, but we suggest:
+## Approach
+The general strategy to this problem is as follows:
+![strategy](docs/strategy.png)
+- Take candidate files. If they are not PDFs or images, convert them to PDFs.
+- Convert PDFs to images. Eg. using pdf2img.
+- Use a multimodal LLM like GPT 4o, and use the image as input.
+- Prompt the LLM and ask to classify the type of document in the image to one from the given list.
+    - New document types can likely be added just by extending the list of candidate File Types. I've added some extra types like passports, receipts, utility bills, insurance policies, and credit reports.
+- Use structured output to grab the output.
+- Return that via the API.
 
+### Productionising
 
-### Part 1: Enhancing the Classifier
+There are some considerations around productionising the solution:
+- It involves delegating to OpenAI as a tradeoff, which can be unreliable in exchange for being very flexible.
+- The proposed solution is extremely IO heavy. Using something async instead of sync (like FastAPI) would allow for much more concurrent requests.
+    - Converting PDFs to images with poppler would be a container local dependency. It should be leveraged via a ThreadPool to avoid blocking requests (Not implemented).
+- To mitigate an external dependency like OpenAI, can have a multi tier approach, where we can fall back to cheaper/less capable/local classifiers when needed.
+- I've added integration tests to flex the files against our solution. This tests examples files against all of the supported file types.
 
-- What are the limitations in the current classifier that's stopping it from scaling?
-- How might you extend the classifier with additional technologies, capabilities, or features?
+Current Approach:
 
+![scaling_1](docs/scaling_1.png)
 
-### Part 2: Productionising the Classifier 
+Possible Approach backed by an async queue:
 
-- How can you ensure the classifier is robust and reliable in a production environment?
-- How can you deploy the classifier to make it accessible to other services and users?
+![scaling_2](docs/scaling_2.png)
 
-We encourage you to be creative! Feel free to use any libraries, tools, services, models or frameworks of your choice
+## Running Locally
+This uses [uv](https://docs.astral.sh/uv/) to sort Python / Virtual Environment / Dependencies ([install instructions](https://docs.astral.sh/uv/getting-started/installation/)). All commands are run with
+```
+uv run ...
+```
 
-### Possible Ideas / Suggestions
-- Train a classifier to categorize files based on the text content of a file
-- Generate synthetic data to train the classifier on documents from different industries
-- Detect file type and handle other file formats (e.g., Word, Excel)
-- Set up a CI/CD pipeline for automatic testing and deployment
-- Refactor the codebase to make it more maintainable and scalable
+There is a dependency on OpenAI. See the `.env.example`. Add your own `.env` and `source` it. ie. Make sure you have a `OPENAI_API_KEY` env variable populated. This includes for tests.
 
-## Marking Criteria
-- **Functionality**: Does the classifier work as expected?
-- **Scalability**: Can the classifier scale to new industries and higher volumes?
-- **Maintainability**: Is the codebase well-structured and easy to maintain?
-- **Creativity**: Are there any innovative or creative solutions to the problem?
-- **Testing**: Are there tests to validate the service's functionality?
-- **Deployment**: Is the classifier ready for deployment in a production environment?
+To run (integration) tests:
+```
+uv run pytest
+```
 
+To run the app locally:
+```
+uv run uvicorn src.app:app
+curl -X POST -F 'file=@path_to_file.pdf' http://127.0.0.1:8000/classify_file
+```
 
-## Getting Started
-1. Clone the repository:
-    ```shell
-    git clone <repository_url>
-    cd heron_classifier
-    ```
-
-2. Install dependencies:
-    ```shell
-    python -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
-
-3. Run the Flask app:
-    ```shell
-    python -m src.app
-    ```
-
-4. Test the classifier using a tool like curl:
-    ```shell
-    curl -X POST -F 'file=@path_to_pdf.pdf' http://127.0.0.1:5000/classify_file
-    ```
-
-5. Run tests:
-   ```shell
-    pytest
-    ```
-
-## Submission
-
-Please aim to spend 3 hours on this challenge.
-
-Once completed, submit your solution by sharing a link to your forked repository. Please also provide a brief write-up of your ideas, approach, and any instructions needed to run your solution. 
+For format/lint:
+```
+uv run ruff check
+uv run ruff format
+```

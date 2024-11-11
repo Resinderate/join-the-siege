@@ -1,38 +1,124 @@
-from io import BytesIO
-
 import pytest
-from src.app import app, allowed_file
 
-@pytest.fixture
-def client():
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
+from src.domain import FileType
 
 
-@pytest.mark.parametrize("filename, expected", [
-    ("file.pdf", True),
-    ("file.png", True),
-    ("file.jpg", True),
-    ("file.txt", False),
-    ("file", False),
-])
-def test_allowed_file(filename, expected):
-    assert allowed_file(filename) == expected
+class TestExtractAPI:
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "drivers_license_1.jpg",
+            "drivers_licence_2.jpg",
+            "drivers_license_3.jpg",
+        ],
+    )
+    def test_drivers_licenses(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
 
-def test_no_file_in_request(client):
-    response = client.post('/classify_file')
-    assert response.status_code == 400
+        assert resp.json() == {"file_type": FileType.DRIVERS_LICENSE.name}
 
-def test_no_selected_file(client):
-    data = {'file': (BytesIO(b""), '')}  # Empty filename
-    response = client.post('/classify_file', data=data, content_type='multipart/form-data')
-    assert response.status_code == 400
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "bank_statement_1.pdf",
+            "bank_statement_2.pdf",
+            "bank_statement_3.pdf",
+        ],
+    )
+    def test_bank_statements(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
 
-def test_success(client, mocker):
-    mocker.patch('src.app.classify_file', return_value='test_class')
+        assert resp.json() == {"file_type": FileType.BANK_STATEMENT.name}
 
-    data = {'file': (BytesIO(b"dummy content"), 'file.pdf')}
-    response = client.post('/classify_file', data=data, content_type='multipart/form-data')
-    assert response.status_code == 200
-    assert response.get_json() == {"file_class": "test_class"}
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "invoice_1.pdf",
+            "invoice_2.pdf",
+            "invoice_3.pdf",
+        ],
+    )
+    def test_invoices(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
+
+        assert resp.json() == {"file_type": FileType.INVOICE.name}
+
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "passport_1.jpeg",
+            "passport_2.png",
+            "passport_3.png",
+        ],
+    )
+    def test_passports(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
+
+        assert resp.json() == {"file_type": FileType.PASSPORT.name}
+
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "insurance_policy_1.jpg",
+            "insurance_policy_2.png",
+            "insurance_policy_3.jpg",
+        ],
+    )
+    def test_insurance_policies(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
+
+        assert resp.json() == {"file_type": FileType.INSURANCE_POLICY.name}
+
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "credit_report_1.png",
+            "credit_report_2.png",
+        ],
+    )
+    def test_credit_reports(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
+
+        assert resp.json() == {"file_type": FileType.CREDIT_REPORT.name}
+
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "receipt_1.jpg",
+            "receipt_2.jpeg",
+            "receipt_3.jpg",
+        ],
+    )
+    def test_receipt(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
+
+        assert resp.json() == {"file_type": FileType.RECEIPT.name}
+
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "utility_bill_1.jpg",
+            "utility_bill_2.jpg",
+            "utility_bill_3.jpg",
+        ],
+    )
+    def test_utility_bill(self, client, filename):
+        with open(f"files/{filename}", "rb") as f:
+            files = {"file": f}
+            resp = client.post("/classify_file", files=files)
+
+        assert resp.json() == {"file_type": FileType.UTILITY_BILL.name}

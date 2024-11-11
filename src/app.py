@@ -1,29 +1,32 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, UploadFile, HTTPException
+from pydantic import BaseModel
 
-from src.classifier import classify_file
-app = Flask(__name__)
-
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/classify_file', methods=['POST'])
-def classify_file_route():
-
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part in the request"}), 400
-
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
-    if not allowed_file(file.filename):
-        return jsonify({"error": f"File type not allowed"}), 400
-
-    file_class = classify_file(file)
-    return jsonify({"file_class": file_class}), 200
+from src.domain import File, FileType
+from src.classifiers.file_classifier import FileClassifier
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
+app = FastAPI()
+
+ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
+
+
+def allowed_file(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+class ClassifiedFile(BaseModel):
+    file_type: FileType
+
+
+@app.post("/classify_file")
+async def classify_file(file: UploadFile) -> ClassifiedFile:
+    if file.filename == "" or file.filename is None:
+        raise HTTPException(400, "No filename on file")
+
+    f = File(name=file.filename, content=file.file)
+    if f.extension() not in ALLOWED_EXTENSIONS:
+        raise HTTPException(400, f"Filetype not allowed: {f.extension()}")
+
+    file_type = await FileClassifier().classify_file(f)
+
+    return ClassifiedFile(file_type=file_type)
